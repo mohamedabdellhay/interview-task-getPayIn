@@ -1,0 +1,206 @@
+{
+    "info": {
+        "name": "Flash Sale API",
+        "description": "API for flash-sale checkout with concurrency control",
+        "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+    },
+    "variable": [
+        {
+            "key": "base_url",
+            "value": "http://localhost:8000/api",
+            "type": "string"
+        },
+        {
+            "key": "product_id",
+            "value": "1",
+            "type": "string"
+        },
+        {
+            "key": "hold_id",
+            "value": "",
+            "type": "string"
+        },
+        {
+            "key": "order_id",
+            "value": "",
+            "type": "string"
+        }
+    ],
+    "item": [
+        {
+            "name": "1. Get Product",
+            "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                    "raw": "{{base_url}}/products/{{product_id}}",
+                    "host": ["{{base_url}}"],
+                    "path": ["products", "{{product_id}}"]
+                }
+            },
+            "response": []
+        },
+        {
+            "name": "2. Create Hold",
+            "event": [
+                {
+                    "listen": "test",
+                    "script": {
+                        "exec": [
+                            "if (pm.response.code === 201) {",
+                            "    const response = pm.response.json();",
+                            "    pm.collectionVariables.set('hold_id', response.data.hold_id);",
+                            "    console.log('Hold ID saved:', response.data.hold_id);",
+                            "}"
+                        ]
+                    }
+                }
+            ],
+            "request": {
+                "method": "POST",
+                "header": [
+                    {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                    }
+                ],
+                "body": {
+                    "mode": "raw",
+                    "raw": "{\n  \"product_id\": {{product_id}},\n  \"qty\": 2\n}"
+                },
+                "url": {
+                    "raw": "{{base_url}}/holds",
+                    "host": ["{{base_url}}"],
+                    "path": ["holds"]
+                }
+            },
+            "response": []
+        },
+        {
+            "name": "3. Create Order",
+            "event": [
+                {
+                    "listen": "test",
+                    "script": {
+                        "exec": [
+                            "if (pm.response.code === 201) {",
+                            "    const response = pm.response.json();",
+                            "    pm.collectionVariables.set('order_id', response.data.order_id);",
+                            "    console.log('Order ID saved:', response.data.order_id);",
+                            "}"
+                        ]
+                    }
+                }
+            ],
+            "request": {
+                "method": "POST",
+                "header": [
+                    {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                    }
+                ],
+                "body": {
+                    "mode": "raw",
+                    "raw": "{\n  \"hold_id\": {{hold_id}}\n}"
+                },
+                "url": {
+                    "raw": "{{base_url}}/orders",
+                    "host": ["{{base_url}}"],
+                    "path": ["orders"]
+                }
+            },
+            "response": []
+        },
+        {
+            "name": "4. Payment Webhook - Success",
+            "request": {
+                "method": "POST",
+                "header": [
+                    {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                    }
+                ],
+                "body": {
+                    "mode": "raw",
+                    "raw": "{\n  \"idempotency_key\": \"{{$randomUUID}}\",\n  \"order_id\": {{order_id}},\n  \"status\": \"success\",\n  \"amount\": 2599.98,\n  \"payment_method\": \"credit_card\"\n}"
+                },
+                "url": {
+                    "raw": "{{base_url}}/payments/webhook",
+                    "host": ["{{base_url}}"],
+                    "path": ["payments", "webhook"]
+                }
+            },
+            "response": []
+        },
+        {
+            "name": "4. Payment Webhook - Failure",
+            "request": {
+                "method": "POST",
+                "header": [
+                    {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                    }
+                ],
+                "body": {
+                    "mode": "raw",
+                    "raw": "{\n  \"idempotency_key\": \"{{$randomUUID}}\",\n  \"order_id\": {{order_id}},\n  \"status\": \"failure\",\n  \"amount\": 2599.98\n}"
+                },
+                "url": {
+                    "raw": "{{base_url}}/payments/webhook",
+                    "host": ["{{base_url}}"],
+                    "path": ["payments", "webhook"]
+                }
+            },
+            "response": []
+        },
+        {
+            "name": "Test - Duplicate Webhook",
+            "request": {
+                "method": "POST",
+                "header": [
+                    {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                    }
+                ],
+                "body": {
+                    "mode": "raw",
+                    "raw": "{\n  \"idempotency_key\": \"duplicate-test-key-123\",\n  \"order_id\": {{order_id}},\n  \"status\": \"success\"\n}"
+                },
+                "url": {
+                    "raw": "{{base_url}}/payments/webhook",
+                    "host": ["{{base_url}}"],
+                    "path": ["payments", "webhook"]
+                },
+                "description": "Send this twice to test idempotency"
+            },
+            "response": []
+        },
+        {
+            "name": "Test - Insufficient Stock",
+            "request": {
+                "method": "POST",
+                "header": [
+                    {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                    }
+                ],
+                "body": {
+                    "mode": "raw",
+                    "raw": "{\n  \"product_id\": {{product_id}},\n  \"qty\": 999\n}"
+                },
+                "url": {
+                    "raw": "{{base_url}}/holds",
+                    "host": ["{{base_url}}"],
+                    "path": ["holds"]
+                },
+                "description": "Try to hold more than available stock"
+            },
+            "response": []
+        }
+    ]
+}

@@ -11,6 +11,10 @@ use App\Http\Controllers\Api\PaymentWebhookController;
 | API Routes
 |--------------------------------------------------------------------------
 */
+// for testing 
+Route::get('/test', function () {
+    return response()->json(['message' => 'API is working!']);
+});
 
 // 1. Product Endpoint
 Route::get('/products/{id}', [ProductController::class, 'show']);

@@ -1,59 +1,339 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# Flash-Sale Checkout API
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+A high-concurrency Laravel API for flash-sale checkout operations with robust overselling prevention, idempotent payment webhooks, and automatic hold expiry management.
 
-## About Laravel
+## 🎯 Features
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+-   ✅ **Overselling Prevention**: Pessimistic locking prevents race conditions
+-   ✅ **Temporary Holds**: 2-minute reservations with automatic expiry
+-   ✅ **Idempotent Webhooks**: Safe duplicate webhook processing
+-   ✅ **Out-of-Order Handling**: Webhooks can arrive before order creation
+-   ✅ **Deadlock Recovery**: Automatic retry with exponential backoff
+-   ✅ **High Performance**: Strategic caching for burst traffic
+-   ✅ **Comprehensive Logging**: Detailed metrics for monitoring
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+## 🚀 Quick Start
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+### Prerequisites
 
-## Learning Laravel
+-   Docker & Docker Compose
+-   Git
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework. You can also check out [Laravel Learn](https://laravel.com/learn), where you will be guided through building a modern Laravel application.
+### Installation
 
-If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+```bash
+# 1. Clone the repository
+git clone <repository-url>
+cd flash-sale-api
 
-## Laravel Sponsors
+# 2. Copy environment file
+cp .env.example .env
 
-We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the [Laravel Partners program](https://partners.laravel.com).
+# 3. Start Docker containers
+./vendor/bin/sail up -d
 
-### Premium Partners
+# 4. Install dependencies
+./vendor/bin/sail composer install
 
-- **[Vehikl](https://vehikl.com)**
-- **[Tighten Co.](https://tighten.co)**
-- **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
-- **[64 Robots](https://64robots.com)**
-- **[Curotec](https://www.curotec.com/services/technologies/laravel)**
-- **[DevSquad](https://devsquad.com/hire-laravel-developers)**
-- **[Redberry](https://redberry.international/laravel-development)**
-- **[Active Logic](https://activelogic.com)**
+# 5. Run migrations
+./vendor/bin/sail artisan migrate
 
-## Contributing
+# 6. Seed database with sample product
+./vendor/bin/sail artisan db:seed --class=ProductSeeder
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+# 7. Clear cache
+./vendor/bin/sail artisan optimize:clear
+```
 
-## Code of Conduct
+### Test the API
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+```bash
+# View product
+curl http://localhost:8000/api/products/1
 
-## Security Vulnerabilities
+# Create hold
+curl -X POST http://localhost:8000/api/holds \
+  -H "Content-Type: application/json" \
+  -d '{"product_id": 1, "qty": 2}'
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+# Create order (use hold_id from previous response)
+curl -X POST http://localhost:8000/api/orders \
+  -H "Content-Type: application/json" \
+  -d '{"hold_id": 1}'
 
-## License
+# Send payment webhook (use order_id from previous response)
+curl -X POST http://localhost:8000/api/payments/webhook \
+  -H "Content-Type: application/json" \
+  -d '{
+    "idempotency_key": "unique-key-123",
+    "order_id": 1,
+    "status": "success"
+  }'
+```
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+## 📚 Documentation
+
+See [API_DOCUMENTATION.md](API_DOCUMENTATION.md) for complete API reference.
+
+## 🏗️ Architecture
+
+### Database Schema
+
+```
+products
+├── id
+├── name
+├── price
+└── stock
+
+holds (temporary reservations)
+├── id
+├── product_id
+├── quantity
+├── expires_at
+└── status (active/expired/consumed)
+
+orders
+├── id
+├── hold_id (unique)
+├── product_id
+├── quantity
+├── total_price
+└── status (pending/paid/cancelled)
+
+payment_webhooks (idempotency tracking)
+├── id
+├── idempotency_key (unique)
+├── order_id
+├── status
+└── processed_at
+```
+
+### Core Concepts
+
+#### 1. Available Stock Calculation
+
+```
+Available Stock = Total Stock - Active Holds - Paid Orders
+```
+
+#### 2. Hold Lifecycle
+
+```
+Create → Active (2 min) → Expired/Consumed
+```
+
+#### 3. Order State Machine
+
+```
+Pending → Paid (on webhook success)
+        → Cancelled (on webhook failure)
+```
+
+## 🔒 Concurrency Safety
+
+### Pessimistic Locking
+
+```php
+DB::transaction(function () {
+    $product = Product::lockForUpdate()->find($id);
+    // No other transaction can read/write this row
+});
+```
+
+### Deadlock Handling
+
+-   Automatic retry (3 attempts)
+-   Exponential backoff: 100ms → 200ms → 300ms
+-   Graceful degradation under high load
+
+### Idempotency
+
+-   Unique `idempotency_key` prevents duplicate processing
+-   Database constraint ensures single processing
+-   Safe to retry failed webhooks
+
+## 🧪 Testing
+
+### Run Tests
+
+```bash
+./vendor/bin/sail artisan test
+```
+
+### Load Testing
+
+```bash
+# Install Apache Bench
+sudo apt-get install apache2-utils
+
+# Test with 100 concurrent requests
+ab -n 1000 -c 100 http://localhost:8000/api/products/1
+```
+
+### Manual Concurrency Test
+
+```bash
+# Create 10 parallel hold requests
+for i in {1..10}; do
+  curl -X POST http://localhost:8000/api/holds \
+    -H "Content-Type: application/json" \
+    -d '{"product_id": 1, "qty": 1}' &
+done
+wait
+
+# Check available stock (should prevent overselling)
+curl http://localhost:8000/api/products/1
+```
+
+## 📊 Monitoring & Logs
+
+### View Logs
+
+```bash
+./vendor/bin/sail artisan tail
+```
+
+### Key Metrics Logged
+
+-   Hold creation success/failure
+-   Deadlock occurrences
+-   Webhook duplicate detection
+-   Out-of-order webhook handling
+-   Stock changes
+
+### Log Location
+
+```
+storage/logs/laravel.log
+```
+
+## 🛠️ Development
+
+### Code Structure
+
+```
+app/
+├── Models/
+│   ├── Product.php          # Stock management & caching
+│   ├── Hold.php             # Temporary reservations
+│   ├── Order.php            # Order state machine
+│   └── PaymentWebhook.php   # Idempotent processing
+└── Http/Controllers/Api/
+    ├── ProductController.php
+    ├── HoldController.php
+    ├── OrderController.php
+    └── PaymentWebhookController.php
+```
+
+### Key Design Decisions
+
+1. **Pessimistic Locking over Optimistic**
+
+    - Simpler to reason about
+    - Better for high-contention scenarios
+    - MySQL InnoDB handles it well
+
+2. **2-Minute Hold Expiry**
+
+    - Balance between user experience and stock availability
+    - Automatic cleanup via background job
+
+3. **Cache Strategy**
+
+    - Product details: 10 seconds
+    - Available stock: 5 seconds
+    - Invalidate on any stock change
+
+4. **Retry Logic**
+    - Holds: 3 attempts (deadlock recovery)
+    - Webhooks: 5 attempts (out-of-order handling)
+    - Exponential backoff prevents thundering herd
+
+## 🚧 Background Jobs
+
+### Hold Expiry Job
+
+Runs every minute to release expired holds:
+
+```bash
+# Start scheduler
+./vendor/bin/sail artisan schedule:work
+```
+
+### Queue Worker (if needed)
+
+```bash
+./vendor/bin/sail artisan queue:work
+```
+
+## 🔧 Configuration
+
+### Environment Variables
+
+```env
+# Database
+DB_CONNECTION=mysql
+DB_HOST=mysql
+DB_PORT=3306
+DB_DATABASE=laravel
+DB_USERNAME=sail
+DB_PASSWORD=password
+
+# Cache (redis/database/file)
+CACHE_STORE=redis
+
+# Queue (redis/database/sync)
+QUEUE_CONNECTION=redis
+```
+
+## 📝 Task Requirements Compliance
+
+| Requirement                          | Status | Implementation                 |
+| ------------------------------------ | ------ | ------------------------------ |
+| Product endpoint with accurate stock | ✅     | Cached + real-time calculation |
+| Create hold (2-min expiry)           | ✅     | Auto-expiry via scheduled job  |
+| Create order from hold               | ✅     | Single-use validation          |
+| Idempotent payment webhook           | ✅     | Unique key constraint          |
+| No overselling                       | ✅     | Pessimistic locking            |
+| Deadlock handling                    | ✅     | Retry with backoff             |
+| Fast under burst traffic             | ✅     | Strategic caching              |
+| Background expiry                    | ✅     | Scheduled command              |
+| Structured logging                   | ✅     | Comprehensive logging          |
+
+## 🐛 Troubleshooting
+
+### Routes not working
+
+```bash
+./vendor/bin/sail artisan route:clear
+./vendor/bin/sail artisan optimize:clear
+```
+
+### Database connection issues
+
+```bash
+# Check containers are running
+./vendor/bin/sail ps
+
+# Verify database exists
+./vendor/bin/sail mysql -e "SHOW DATABASES;"
+```
+
+### Cache not updating
+
+```bash
+./vendor/bin/sail artisan cache:clear
+```
+
+## 📄 License
+
+This project is for interview assessment purposes.
+
+## 👨‍💻 Author
+
+[Your Name]
+
+## 🙏 Acknowledgments
+
+Built with Laravel 12, MySQL, and Redis.
