@@ -12,16 +12,16 @@
 
 ## Table of Contents
 
--   [Features](#-features)
--   [Architecture](#-architecture)
--   [Quick Start](#-quick-start)
--   [API Documentation](#-api-documentation)
--   [Testing](#-testing)
--   [How It Works](#-how-it-works)
--   [Performance](#-performance)
--   [Logs & Monitoring](#-logs--monitoring)
--   [Troubleshooting](#-troubleshooting)
--   [Task Requirements Compliance](#-task-requirements-compliance)
+-   [Features](#features)
+-   [Architecture](#architecture)
+-   [Quick Start](#quick-start)
+-   [API Documentation](#api-documentation)
+-   [Testing](#testing)
+-   [How It Works](#how-it-works)
+-   [Performance](#performance)
+-   [Logs & Monitoring](#logs--monitoring)
+-   [Troubleshooting](#troubleshooting)
+-   [Task Requirements Compliance](#task-requirements-compliance)
 
 ---
 
