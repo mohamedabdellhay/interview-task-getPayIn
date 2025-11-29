@@ -2,17 +2,17 @@
 
 A high-concurrency Laravel API for flash-sale checkout operations with robust overselling prevention, idempotent payment webhooks, and automatic hold expiry management.
 
-## 🎯 Features
+## Features
 
--   ✅ **Overselling Prevention**: Pessimistic locking prevents race conditions
--   ✅ **Temporary Holds**: 2-minute reservations with automatic expiry
--   ✅ **Idempotent Webhooks**: Safe duplicate webhook processing
--   ✅ **Out-of-Order Handling**: Webhooks can arrive before order creation
--   ✅ **Deadlock Recovery**: Automatic retry with exponential backoff
--   ✅ **High Performance**: Strategic caching for burst traffic
--   ✅ **Comprehensive Logging**: Detailed metrics for monitoring
+-   **Overselling Prevention**: Pessimistic locking prevents race conditions
+-   **Temporary Holds**: 2-minute reservations with automatic expiry
+-   **Idempotent Webhooks**: Safe duplicate webhook processing
+-   **Out-of-Order Handling**: Webhooks can arrive before order creation
+-   **Deadlock Recovery**: Automatic retry with exponential backoff
+-   **High Performance**: Strategic caching for burst traffic
+-   **Comprehensive Logging**: Detailed metrics for monitoring
 
-## 🚀 Quick Start
+## Quick Start
 
 ### Prerequisites
 
@@ -71,11 +71,11 @@ curl -X POST http://localhost:8000/api/payments/webhook \
   }'
 ```
 
-## 📚 Documentation
+## Documentation
 
 See [API_DOCUMENTATION.md](API_DOCUMENTATION.md) for complete API reference.
 
-## 🏗️ Architecture
+## Architecture
 
 ### Database Schema
 
@@ -130,7 +130,7 @@ Pending → Paid (on webhook success)
         → Cancelled (on webhook failure)
 ```
 
-## 🔒 Concurrency Safety
+## Concurrency Safety
 
 ### Pessimistic Locking
 
@@ -153,7 +153,7 @@ DB::transaction(function () {
 -   Database constraint ensures single processing
 -   Safe to retry failed webhooks
 
-## 🧪 Testing
+## Testing
 
 ### Run Tests
 
@@ -186,7 +186,7 @@ wait
 curl http://localhost:8000/api/products/1
 ```
 
-## 📊 Monitoring & Logs
+## Monitoring & Logs
 
 ### View Logs
 
@@ -208,7 +208,7 @@ curl http://localhost:8000/api/products/1
 storage/logs/laravel.log
 ```
 
-## 🛠️ Development
+## Development
 
 ### Code Structure
 
@@ -250,7 +250,7 @@ app/
     - Webhooks: 5 attempts (out-of-order handling)
     - Exponential backoff prevents thundering herd
 
-## 🚧 Background Jobs
+## Background Jobs
 
 ### Hold Expiry Job
 
@@ -267,7 +267,7 @@ Runs every minute to release expired holds:
 ./vendor/bin/sail artisan queue:work
 ```
 
-## 🔧 Configuration
+## Configuration
 
 ### Environment Variables
 
@@ -287,21 +287,21 @@ CACHE_STORE=redis
 QUEUE_CONNECTION=redis
 ```
 
-## 📝 Task Requirements Compliance
+## Task Requirements Compliance
 
 | Requirement                          | Status | Implementation                 |
 | ------------------------------------ | ------ | ------------------------------ |
-| Product endpoint with accurate stock | ✅     | Cached + real-time calculation |
-| Create hold (2-min expiry)           | ✅     | Auto-expiry via scheduled job  |
-| Create order from hold               | ✅     | Single-use validation          |
-| Idempotent payment webhook           | ✅     | Unique key constraint          |
-| No overselling                       | ✅     | Pessimistic locking            |
-| Deadlock handling                    | ✅     | Retry with backoff             |
-| Fast under burst traffic             | ✅     | Strategic caching              |
-| Background expiry                    | ✅     | Scheduled command              |
-| Structured logging                   | ✅     | Comprehensive logging          |
+| Product endpoint with accurate stock |        | Cached + real-time calculation |
+| Create hold (2-min expiry)           |        | Auto-expiry via scheduled job  |
+| Create order from hold               |        | Single-use validation          |
+| Idempotent payment webhook           |        | Unique key constraint          |
+| No overselling                       |        | Pessimistic locking            |
+| Deadlock handling                    |        | Retry with backoff             |
+| Fast under burst traffic             |        | Strategic caching              |
+| Background expiry                    |        | Scheduled command              |
+| Structured logging                   |        | Comprehensive logging          |
 
-## 🐛 Troubleshooting
+## Troubleshooting
 
 ### Routes not working
 
@@ -326,14 +326,14 @@ QUEUE_CONNECTION=redis
 ./vendor/bin/sail artisan cache:clear
 ```
 
-## 📄 License
+## License
 
 This project is for interview assessment purposes.
 
-## 👨‍💻 Author
+## Author
 
 [Your Name]
 
-## 🙏 Acknowledgments
+## Acknowledgments
 
 Built with Laravel 12, MySQL, and Redis.
