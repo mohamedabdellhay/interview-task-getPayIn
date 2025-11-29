@@ -669,7 +669,7 @@ This project is for interview assessment at GetPayIn
 
 **Mohamed Elsayed Abdellhay**
 
--   GitHub: [@https://github.com/mohamedabdellhay]
+-   GitHub: https://github.com/mohamedabdellhay
 -   Email: mohamedabdellhay1@gmail.com
 
 ---
